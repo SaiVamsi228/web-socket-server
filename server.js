@@ -1,56 +1,56 @@
-const WebSocket = require('ws');
-const Y = require('yjs');
-const { setupWSConnection } = require('y-websocket/bin/utils');
-const http = require('http');
-const url = require('url');
+const WebSocket = require("ws");
+const Y = require("yjs");
+const { setupWSConnection } = require("y-websocket/bin/utils");
+const http = require("http");
+const url = require("url");
 
 // Create an HTTP server
 const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('WebSocket server for CollabX');
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("WebSocket server for CollabX");
 });
 
 // Create a WebSocket server
 const wss = new WebSocket.Server({ server });
 
-// Map to hold Yjs documents for each session-language combo
+// Map to hold Yjs documents for each unique sessionId (including language)
 const docs = new Map();
 
-// Function to get or create a Yjs document for a session-language
-function getYDoc(sessionId) {
-  if (!docs.has(sessionId)) {
+// Function to get or create a Yjs document for a full sessionId
+function getYDoc(fullSessionId) {
+  if (!docs.has(fullSessionId)) {
     const ydoc = new Y.Doc();
-    docs.set(sessionId, ydoc);
-    console.log(`Created new Yjs document for ${sessionId}`);
+    docs.set(fullSessionId, ydoc);
+    console.log(`Created new Yjs document for ${fullSessionId}`);
   }
-  return docs.get(sessionId);
+  return docs.get(fullSessionId);
 }
 
 // Handle WebSocket connections
-wss.on('connection', (ws, req) => {
+wss.on("connection", (ws, req) => {
   const parsedUrl = url.parse(req.url, true);
-  const sessionId = parsedUrl.query.sessionId;
+  const fullSessionId = parsedUrl.query.sessionId;
 
-  console.log(`Connection attempt: sessionId=${sessionId}`);
+  console.log(`Connection attempt: sessionId=${fullSessionId}`);
 
-  if (!sessionId) {
+  if (!fullSessionId) {
     console.log(`Closing connection: Missing sessionId`);
-    ws.close(1008, 'Missing sessionId');
+    ws.close(1008, "Missing sessionId");
     return;
   }
 
-  console.log(`✅ Connected to ${sessionId}`);
-  const ydoc = getYDoc(sessionId);
+  console.log(`✅ Connected to ${fullSessionId}`);
+  const ydoc = getYDoc(fullSessionId); // Use full sessionId as the key
   setupWSConnection(ws, req, { doc: ydoc });
 
   // Log document state for debugging
-  ydoc.on('update', () => {
-    console.log(`Document updated for ${sessionId}`);
+  ydoc.on("update", () => {
+    console.log(`Document updated for ${fullSessionId}`);
   });
 });
 
 // Clean up documents (optional)
-wss.on('close', () => {
+wss.on("close", () => {
   docs.forEach((doc) => doc.destroy());
   docs.clear();
 });
