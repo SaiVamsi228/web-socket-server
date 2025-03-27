@@ -5,7 +5,7 @@ const http = require('http');
 const url = require('url');
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin SDK (use environment variable for security)
+// Initialize Firebase Admin SDK
 const serviceAccount = process.env.SERVICE_ACCOUNT
   ? JSON.parse(process.env.SERVICE_ACCOUNT)
   : require('./serviceAccountKey.json');
@@ -38,7 +38,7 @@ function getYDoc(sessionId) {
 // Handle WebSocket connections
 wss.on('connection', (ws, req) => {
   const parsedUrl = url.parse(req.url, true);
-  const sessionId = parsedUrl.query.sessionId; // Full sessionId-language (e.g., "abc123-javascript")
+  const sessionId = parsedUrl.query.sessionId;
   const token = parsedUrl.query.token;
 
   console.log(`Connection attempt: sessionId=${sessionId}, token=${token ? 'provided' : 'missing'}`);
@@ -48,6 +48,9 @@ wss.on('connection', (ws, req) => {
     ws.close(1008, 'Missing sessionId or token');
     return;
   }
+
+  // Log the full token for debugging
+  console.log(`Received token: ${token}`);
 
   admin.auth().verifyIdToken(token)
     .then((decodedToken) => {
