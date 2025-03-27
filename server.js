@@ -5,8 +5,10 @@ const http = require('http');
 const url = require('url');
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin SDK
-const serviceAccount = require('./serviceAccountKey.json');
+// Initialize Firebase Admin SDK (use environment variable for security)
+const serviceAccount = process.env.SERVICE_ACCOUNT
+  ? JSON.parse(process.env.SERVICE_ACCOUNT)
+  : require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -20,14 +22,15 @@ const server = http.createServer((req, res) => {
 // Create a WebSocket server
 const wss = new WebSocket.Server({ server });
 
-// Map to hold Yjs documents for each session
+// Map to hold Yjs documents for each session-language combo
 const docs = new Map();
 
-// Function to get or create a Yjs document for a session
+// Function to get or create a Yjs document for a session-language
 function getYDoc(sessionId) {
   if (!docs.has(sessionId)) {
     const ydoc = new Y.Doc();
     docs.set(sessionId, ydoc);
+    console.log(`Created new Yjs document for ${sessionId}`);
   }
   return docs.get(sessionId);
 }
@@ -35,31 +38,40 @@ function getYDoc(sessionId) {
 // Handle WebSocket connections
 wss.on('connection', (ws, req) => {
   const parsedUrl = url.parse(req.url, true);
-  const sessionId = parsedUrl.query.sessionId;
+  const sessionId = parsedUrl.query.sessionId; // Full sessionId-language (e.g., "abc123-javascript")
   const token = parsedUrl.query.token;
 
-  // Validate sessionId and token
+  console.log(`Connection attempt: sessionId=${sessionId}, token=${token ? 'provided' : 'missing'}`);
+
   if (!sessionId || !token) {
+    console.log(`Closing connection: Missing sessionId or token`);
     ws.close(1008, 'Missing sessionId or token');
     return;
   }
 
-  // Verify Firebase Authentication token
   admin.auth().verifyIdToken(token)
     .then((decodedToken) => {
-      const uid = decodedToken.uid; // User ID from token
-      console.log(`User ${uid} connected to session ${sessionId}`);
+      const uid = decodedToken.uid;
+      console.log(`✅ User ${uid} connected to ${sessionId}`);
 
-      // Get or create the Yjs document for this session
-      const ydoc = getYDoc(sessionId);
-
-      // Set up the WebSocket connection with Yjs
+      const ydoc = getYDoc(sessionId); // Use full sessionId-language as key
       setupWSConnection(ws, req, { doc: ydoc });
+
+      // Log document state for debugging
+      ydoc.on('update', () => {
+        console.log(`Document updated for ${sessionId}`);
+      });
     })
     .catch((error) => {
-      console.error('Token verification failed:', error);
+      console.error(`❌ Token verification failed for ${sessionId}:`, error);
       ws.close(1008, 'Invalid token');
     });
+});
+
+// Clean up documents (optional, if needed)
+wss.on('close', () => {
+  docs.forEach((doc) => doc.destroy());
+  docs.clear();
 });
 
 // Start the server
