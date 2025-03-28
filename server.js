@@ -67,7 +67,7 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-// Clean up all documents on server shutdown (optional)
+// Clean up all documents on server shutdown (optional) //
 wss.on('close', () => {
   docs.forEach((doc) => doc.destroy());
   docs.clear();
