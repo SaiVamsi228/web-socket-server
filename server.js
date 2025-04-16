@@ -75,7 +75,7 @@ wss.on('close', () => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = import.meta.env.PORT ;
 server.listen(PORT, () => {
   console.log(`WebSocket server running on port ${PORT}`);
 });
