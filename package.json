@@ -20,7 +20,6 @@
   },
   "homepage": "https://github.com/SaiVamsi228/web-socket-server#readme",
   "dependencies": {
-    "firebase-admin": "^13.2.0",
     "ws": "^8.18.1",
     "y-websocket": "^2.1.0",
     "yjs": "^13.6.24"
