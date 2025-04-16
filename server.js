@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const Y = require('yjs');
-const { setupWSConnection } = require('y-websocket/node_modules/ws/lib');
+const { setupWSConnection } = require('y-websocket/bin/utils');
 const http = require('http');
 const url = require('url');
 
