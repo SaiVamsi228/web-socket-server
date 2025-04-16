@@ -7,7 +7,7 @@ const url = require('url');
 // Create an HTTP server
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('WebSocket server for CollabX'); //
+  res.end('WebSocket server for CollabX'); 
 });
 
 // Create a WebSocket server
